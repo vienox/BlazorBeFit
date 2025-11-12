@@ -1,0 +1,95 @@
+@page "/signup"
+@using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<IdentityUser> UserManager
+@inject NavigationManager Navigation
+
+<PageTitle>Rejestracja</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h3>Rejestracja nowego użytkownika</h3>
+        <p class="text-muted">Utwórz darmowe konto w BeFit.</p>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        
+        <EditForm Model="@signupModel" OnValidSubmit="@HandleSignup" FormName="SignupForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            
+            <div class="mb-3">
+                <label class="form-label">Email:</label>
+                <InputText class="form-control" @bind-Value="signupModel.Email" />
+                <ValidationMessage For="@(() => signupModel.Email)" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Hasło:</label>
+                <InputText type="password" class="form-control" @bind-Value="signupModel.Password" />
+                <ValidationMessage For="@(() => signupModel.Password)" />
+                <small class="text-muted">Min. 6 znaków, wielka/mała litera, cyfra, znak specjalny</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Potwierdź hasło:</label>
+                <InputText type="password" class="form-control" @bind-Value="signupModel.ConfirmPassword" />
+                <ValidationMessage For="@(() => signupModel.ConfirmPassword)" />
+            </div>
+            
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">Zarejestruj się</button>
+                <a href="/login" class="btn btn-link">Masz już konto? Zaloguj się</a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private SignupModel signupModel { get; set; } = new();
+    private string? errorMessage;
+    
+    private class SignupModel
+    {
+        [Required(ErrorMessage = "Email jest wymagany")]
+        [EmailAddress(ErrorMessage = "Nieprawidłowy format email")]
+        public string Email { get; set; } = "";
+        
+        [Required(ErrorMessage = "Hasło jest wymagane")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "Hasło musi mieć minimum 6 znaków")]
+        public string Password { get; set; } = "";
+        
+        [Required(ErrorMessage = "Potwierdzenie hasła jest wymagane")]
+        [Compare("Password", ErrorMessage = "Hasła muszą być takie same")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+    
+    private async Task HandleSignup()
+    {
+        errorMessage = null;
+        
+        var user = new IdentityUser 
+        { 
+            UserName = signupModel.Email, 
+            Email = signupModel.Email 
+        };
+        
+        var result = await UserManager.CreateAsync(user, signupModel.Password);
+        
+        if (result.Succeeded)
+        {
+            // Zawsze dodaj rolę "User" (NIE Administrator!)
+            await UserManager.AddToRoleAsync(user, "User");
+            
+            // Przekieruj do logowania z komunikatem sukcesu
+            Navigation.NavigateTo("/login?registered=true");
+        }
+        else
+        {
+            errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+        }
+    }
+}

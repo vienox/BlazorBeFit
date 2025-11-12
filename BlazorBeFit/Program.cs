@@ -10,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+builder.Services.AddHttpContextAccessor(); // Dodane dla dostępu do HttpContext
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 
@@ -19,8 +21,6 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-
-builder.Services.AddRazorPages(); // Dodane dla Identity UI
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -75,7 +75,6 @@ app.UseAuthorization();  // Dodane
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.MapRazorPages(); // Dodane dla Identity UI
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

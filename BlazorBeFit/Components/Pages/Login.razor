@@ -3,6 +3,7 @@
 @using System.ComponentModel.DataAnnotations
 @inject SignInManager<IdentityUser> SignInManager
 @inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Logowanie</PageTitle>
 
@@ -10,12 +11,20 @@
     <div class="col-md-6">
         <h3>Logowanie</h3>
         
+        @if (registered)
+        {
+            <div class="alert alert-success">
+                <strong>Rejestracja zakończona pomyślnie!</strong><br/>
+                Możesz się teraz zalogować używając swojego adresu email i hasła.
+            </div>
+        }
+        
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="alert alert-danger">@errorMessage</div>
         }
         
-        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin" FormName="LoginForm">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" />
             
@@ -33,7 +42,6 @@
             
             <div class="mb-3">
                 <button type="submit" class="btn btn-primary">Zaloguj</button>
-                <a href="/register" class="btn btn-link">Nie masz konta? Zarejestruj się</a>
             </div>
         </EditForm>
         
@@ -46,7 +54,12 @@
 </div>
 
 @code {
-    private LoginModel loginModel = new();
+    [SupplyParameterFromForm]
+    private LoginModel loginModel { get; set; } = new();
+    
+    [SupplyParameterFromQuery(Name = "registered")]
+    private bool registered { get; set; }
+    
     private string? errorMessage;
     
     private class LoginModel
@@ -71,7 +84,7 @@
         
         if (result.Succeeded)
         {
-            Navigation.NavigateTo("/", forceLoad: true);
+            Navigation.NavigateTo("/");
         }
         else
         {

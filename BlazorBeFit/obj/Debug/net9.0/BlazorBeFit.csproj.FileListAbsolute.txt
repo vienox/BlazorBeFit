@@ -255,3 +255,4 @@ C:\Users\niewi\Desktop\BlazorBeFit\BlazorBeFit\obj\Debug\net9.0\refint\BlazorBeF
 C:\Users\niewi\Desktop\BlazorBeFit\BlazorBeFit\obj\Debug\net9.0\BlazorBeFit.pdb
 C:\Users\niewi\Desktop\BlazorBeFit\BlazorBeFit\obj\Debug\net9.0\BlazorBeFit.genruntimeconfig.cache
 C:\Users\niewi\Desktop\BlazorBeFit\BlazorBeFit\obj\Debug\net9.0\ref\BlazorBeFit.dll
+C:\Users\niewi\Desktop\BlazorBeFit\BlazorBeFit\obj\Debug\net9.0\BlazorBeFit.sourcelink.json

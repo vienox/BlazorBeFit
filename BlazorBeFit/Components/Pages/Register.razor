@@ -1,22 +1,24 @@
 @page "/register"
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
 @using System.ComponentModel.DataAnnotations
+@attribute [Authorize(Roles = "Administrator")]
 @inject UserManager<IdentityUser> UserManager
-@inject SignInManager<IdentityUser> SignInManager
 @inject NavigationManager Navigation
 
-<PageTitle>Rejestracja</PageTitle>
+<PageTitle>Rejestracja nowego użytkownika</PageTitle>
 
 <div class="row justify-content-center">
     <div class="col-md-6">
-        <h3>Rejestracja</h3>
+        <h3>Rejestracja nowego użytkownika</h3>
+        <p class="text-muted">Tylko administrator może tworzyć nowe konta.</p>
         
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="alert alert-danger">@errorMessage</div>
         }
         
-        <EditForm Model="@registerModel" OnValidSubmit="@HandleRegister">
+        <EditForm Model="@registerModel" OnValidSubmit="@HandleRegister" FormName="RegisterForm">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" />
             
@@ -39,17 +41,31 @@
                 <ValidationMessage For="@(() => registerModel.ConfirmPassword)" />
             </div>
             
+            <div class="mb-3 form-check">
+                <InputCheckbox class="form-check-input" id="isAdmin" @bind-Value="registerModel.IsAdministrator" />
+                <label class="form-check-label" for="isAdmin">
+                    Czy użytkownik ma być administratorem?
+                </label>
+            </div>
+            
             <div class="mb-3">
-                <button type="submit" class="btn btn-primary">Zarejestruj się</button>
-                <a href="/login" class="btn btn-link">Masz już konto? Zaloguj się</a>
+                <button type="submit" class="btn btn-primary">Utwórz konto użytkownika</button>
+                <a href="/" class="btn btn-link">Anuluj</a>
             </div>
         </EditForm>
+        
+        @if (successMessage != null)
+        {
+            <div class="alert alert-success mt-3">@successMessage</div>
+        }
     </div>
 </div>
 
 @code {
-    private RegisterModel registerModel = new();
+    [SupplyParameterFromForm]
+    private RegisterModel registerModel { get; set; } = new();
     private string? errorMessage;
+    private string? successMessage;
     
     private class RegisterModel
     {
@@ -64,11 +80,14 @@
         [Required(ErrorMessage = "Potwierdzenie hasła jest wymagane")]
         [Compare("Password", ErrorMessage = "Hasła muszą być takie same")]
         public string ConfirmPassword { get; set; } = "";
+        
+        public bool IsAdministrator { get; set; } = false;
     }
     
     private async Task HandleRegister()
     {
         errorMessage = null;
+        successMessage = null;
         
         var user = new IdentityUser 
         { 
@@ -80,12 +99,19 @@
         
         if (result.Succeeded)
         {
-            // Dodaj nowego użytkownika do roli "User"
-            await UserManager.AddToRoleAsync(user, "User");
+            // Dodaj rolę na podstawie checkboxa
+            if (registerModel.IsAdministrator)
+            {
+                await UserManager.AddToRoleAsync(user, "Administrator");
+                successMessage = $"Konto administratora {registerModel.Email} zostało utworzone pomyślnie!";
+            }
+            else
+            {
+                await UserManager.AddToRoleAsync(user, "User");
+                successMessage = $"Konto użytkownika {registerModel.Email} zostało utworzone pomyślnie!";
+            }
             
-            // Automatyczne logowanie po rejestracji
-            await SignInManager.SignInAsync(user, isPersistent: false);
-            Navigation.NavigateTo("/", forceLoad: true);
+            registerModel = new RegisterModel(); // Wyczyść formularz
         }
         else
         {
