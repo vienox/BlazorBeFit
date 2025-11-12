@@ -2,8 +2,12 @@
 @using BlazorBeFit.Data
 @using BlazorBeFit.Models
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
 @inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
+@attribute [Authorize]
 
 <PageTitle>Sesje Treningowe</PageTitle>
 
@@ -88,32 +92,55 @@ else
     private TrainingSession currentSession = new() { Start = DateTime.Now, End = DateTime.Now.AddHours(1) };
     private bool showForm = false;
     private int? editingId = null;
+    private string? currentUserId;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadSessions();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            await LoadSessions();
+        }
     }
 
     private async Task LoadSessions()
     {
-        sessions = await DbContext.TrainingSessions.OrderByDescending(s => s.Start).ToListAsync();
+        if (currentUserId != null)
+        {
+            sessions = await DbContext.TrainingSessions
+                .Where(s => s.UserId == currentUserId)
+                .OrderByDescending(s => s.Start)
+                .ToListAsync();
+        }
     }
 
     private void ShowAddForm()
     {
-        currentSession = new TrainingSession { Start = DateTime.Now, End = DateTime.Now.AddHours(1) };
+        currentSession = new TrainingSession 
+        { 
+            Start = DateTime.Now, 
+            End = DateTime.Now.AddHours(1),
+            UserId = currentUserId ?? string.Empty
+        };
         editingId = null;
         showForm = true;
     }
 
     private async Task EditSession(int id)
     {
-        var session = await DbContext.TrainingSessions.FindAsync(id);
+        var session = await DbContext.TrainingSessions
+            .Where(s => s.Id == id && s.UserId == currentUserId)
+            .FirstOrDefaultAsync();
+            
         if (session != null)
         {
             currentSession = new TrainingSession 
             { 
                 Id = session.Id, 
+                UserId = session.UserId,
                 Start = session.Start, 
                 End = session.End 
             };
@@ -124,9 +151,14 @@ else
 
     private async Task SaveSession()
     {
+        if (currentUserId == null) return;
+
         if (editingId.HasValue)
         {
-            var session = await DbContext.TrainingSessions.FindAsync(editingId.Value);
+            var session = await DbContext.TrainingSessions
+                .Where(s => s.Id == editingId.Value && s.UserId == currentUserId)
+                .FirstOrDefaultAsync();
+                
             if (session != null)
             {
                 session.Start = currentSession.Start;
@@ -136,6 +168,7 @@ else
         }
         else
         {
+            currentSession.UserId = currentUserId;
             DbContext.TrainingSessions.Add(currentSession);
         }
         
@@ -146,7 +179,10 @@ else
 
     private async Task DeleteSession(int id)
     {
-        var session = await DbContext.TrainingSessions.FindAsync(id);
+        var session = await DbContext.TrainingSessions
+            .Where(s => s.Id == id && s.UserId == currentUserId)
+            .FirstOrDefaultAsync();
+            
         if (session != null)
         {
             DbContext.TrainingSessions.Remove(session);
@@ -158,7 +194,12 @@ else
     private void CancelForm()
     {
         showForm = false;
-        currentSession = new TrainingSession { Start = DateTime.Now, End = DateTime.Now.AddHours(1) };
+        currentSession = new TrainingSession 
+        { 
+            Start = DateTime.Now, 
+            End = DateTime.Now.AddHours(1),
+            UserId = currentUserId ?? string.Empty
+        };
         editingId = null;
     }
 }

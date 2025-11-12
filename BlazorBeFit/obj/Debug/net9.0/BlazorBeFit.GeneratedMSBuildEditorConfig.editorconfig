@@ -32,10 +32,6 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/niewi/Desktop/BlazorBeFit/BlazorBeFit/Components/Pages/DatabaseInfo.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEYXRhYmFzZUluZm8ucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = 
-
 [C:/Users/niewi/Desktop/BlazorBeFit/BlazorBeFit/Components/Pages/Error.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFcnJvci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 

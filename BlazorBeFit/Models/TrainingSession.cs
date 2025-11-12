@@ -7,6 +7,9 @@ public class TrainingSession
 {
     public int Id { get; set; }
 
+    [Required]
+    public string UserId { get; set; } = string.Empty;
+
     [DataType(DataType.DateTime)]
     public DateTime Start { get; set; }
 

@@ -25,7 +25,6 @@ BlazorBeFit to aplikacja webowa stworzona w **ASP.NET Core Blazor**, która umo�
 - **Walidacja danych** - kontrola poprawności wprowadzanych danych
 
 ### 📊 Funkcje dodatkowe
-- **Przeglądanie bazy danych** - inspekcja struktury SQLite
 - **Responsywny interfejs** - Bootstrap 5
 - **Ikony** - Bootstrap Icons
 
@@ -131,7 +130,6 @@ BlazorBeFit/
 ### User (Użytkownik)
 - Tworzenie i edycja sesji treningowych
 - Tworzenie i edycja wpisów treningowych
-- Przeglądanie bazy danych
 - Brak dostępu do zarządzania typami ćwiczeń
 
 ## 🎨 Interfejs
