@@ -1,0 +1,210 @@
+@page "/training-entries"
+@using BlazorBeFit.Data
+@using BlazorBeFit.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@rendermode InteractiveServer
+
+<PageTitle>Wpisy Treningowe</PageTitle>
+
+<h3>Wpisy Treningowe</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddForm">
+        <span class="bi bi-plus-circle"></span> Dodaj nowy wpis
+    </button>
+</div>
+
+@if (showForm)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">@(editingId.HasValue ? "Edytuj" : "Dodaj") wpis treningowy</h5>
+            <EditForm Model="@currentEntry" OnValidSubmit="@SaveEntry">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                
+                <div class="mb-3">
+                    <label class="form-label">Sesja treningowa:</label>
+                    <InputSelect class="form-select" @bind-Value="currentEntry.TrainingSessionId">
+                        <option value="0">-- Wybierz sesję --</option>
+                        @foreach (var session in sessions ?? new())
+                        {
+                            <option value="@session.Id">@session.Start.ToString("dd.MM.yyyy HH:mm") - @session.End.ToString("HH:mm")</option>
+                        }
+                    </InputSelect>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Typ ćwiczenia:</label>
+                    <InputSelect class="form-select" @bind-Value="currentEntry.ExerciseTypeId">
+                        <option value="0">-- Wybierz ćwiczenie --</option>
+                        @foreach (var exercise in exercises ?? new())
+                        {
+                            <option value="@exercise.Id">@exercise.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Obciążenie (kg):</label>
+                    <InputNumber class="form-control" @bind-Value="currentEntry.Weight" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Liczba serii:</label>
+                    <InputNumber class="form-control" @bind-Value="currentEntry.Sets" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Powtórzenia w serii:</label>
+                    <InputNumber class="form-control" @bind-Value="currentEntry.Repetitions" />
+                </div>
+                
+                <button type="submit" class="btn btn-success">Zapisz</button>
+                <button type="button" class="btn btn-secondary" @onclick="CancelForm">Anuluj</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (entries == null)
+{
+    <p><em>Ładowanie...</em></p>
+}
+else if (!entries.Any())
+{
+    <div class="alert alert-info">Brak wpisów treningowych. Dodaj pierwszy!</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Sesja</th>
+                <th>Ćwiczenie</th>
+                <th>Obciążenie (kg)</th>
+                <th>Serie</th>
+                <th>Powtórzenia</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var entry in entries)
+            {
+                <tr>
+                    <td>@entry.Id</td>
+                    <td>@entry.TrainingSession?.Start.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>@entry.ExerciseType?.Name</td>
+                    <td>@entry.Weight</td>
+                    <td>@entry.Sets</td>
+                    <td>@entry.Repetitions</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditEntry(entry.Id)">
+                            <span class="bi bi-pencil"></span> Edytuj
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteEntry(entry.Id)">
+                            <span class="bi bi-trash"></span> Usuń
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<TrainingEntry>? entries;
+    private List<TrainingSession>? sessions;
+    private List<ExerciseType>? exercises;
+    private TrainingEntry currentEntry = new();
+    private bool showForm = false;
+    private int? editingId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        entries = await DbContext.TrainingEntries
+            .Include(e => e.ExerciseType)
+            .Include(e => e.TrainingSession)
+            .OrderByDescending(e => e.Id)
+            .ToListAsync();
+            
+        sessions = await DbContext.TrainingSessions.OrderByDescending(s => s.Start).ToListAsync();
+        exercises = await DbContext.ExerciseTypes.OrderBy(e => e.Name).ToListAsync();
+    }
+
+    private void ShowAddForm()
+    {
+        currentEntry = new TrainingEntry();
+        editingId = null;
+        showForm = true;
+    }
+
+    private async Task EditEntry(int id)
+    {
+        var entry = await DbContext.TrainingEntries.FindAsync(id);
+        if (entry != null)
+        {
+            currentEntry = new TrainingEntry 
+            { 
+                Id = entry.Id,
+                TrainingSessionId = entry.TrainingSessionId,
+                ExerciseTypeId = entry.ExerciseTypeId,
+                Weight = entry.Weight,
+                Sets = entry.Sets,
+                Repetitions = entry.Repetitions
+            };
+            editingId = id;
+            showForm = true;
+        }
+    }
+
+    private async Task SaveEntry()
+    {
+        if (editingId.HasValue)
+        {
+            var entry = await DbContext.TrainingEntries.FindAsync(editingId.Value);
+            if (entry != null)
+            {
+                entry.TrainingSessionId = currentEntry.TrainingSessionId;
+                entry.ExerciseTypeId = currentEntry.ExerciseTypeId;
+                entry.Weight = currentEntry.Weight;
+                entry.Sets = currentEntry.Sets;
+                entry.Repetitions = currentEntry.Repetitions;
+                DbContext.TrainingEntries.Update(entry);
+            }
+        }
+        else
+        {
+            DbContext.TrainingEntries.Add(currentEntry);
+        }
+        
+        await DbContext.SaveChangesAsync();
+        await LoadData();
+        CancelForm();
+    }
+
+    private async Task DeleteEntry(int id)
+    {
+        var entry = await DbContext.TrainingEntries.FindAsync(id);
+        if (entry != null)
+        {
+            DbContext.TrainingEntries.Remove(entry);
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+        }
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        currentEntry = new TrainingEntry();
+        editingId = null;
+    }
+}

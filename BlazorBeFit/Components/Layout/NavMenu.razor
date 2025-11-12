@@ -1,0 +1,41 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">BlazorBeFit</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="exercise-types">
+                <span class="bi bi-lightning-fill" aria-hidden="true"></span> Typy Ćwiczeń
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="training-sessions">
+                <span class="bi bi-calendar-check" aria-hidden="true"></span> Sesje Treningowe
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="training-entries">
+                <span class="bi bi-clipboard-data" aria-hidden="true"></span> Wpisy Treningowe
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="database-info">
+                <span class="bi bi-database" aria-hidden="true"></span> Baza Danych
+            </NavLink>
+        </div>
+    </nav>
+</div>

@@ -1,0 +1,152 @@
+@page "/exercise-types"
+@using BlazorBeFit.Data
+@using BlazorBeFit.Models
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator")]
+@inject ApplicationDbContext DbContext
+@rendermode InteractiveServer
+
+<PageTitle>Typy Ćwiczeń</PageTitle>
+
+<h3>Typy Ćwiczeń</h3>
+<p class="text-muted">Tylko administratorzy mogą zarządzać typami ćwiczeń.</p>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddForm">
+        <span class="bi bi-plus-circle"></span> Dodaj nowy typ
+    </button>
+</div>
+
+@if (showForm)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">@(editingId.HasValue ? "Edytuj" : "Dodaj") typ ćwiczenia</h5>
+            <EditForm Model="@currentExercise" OnValidSubmit="@SaveExercise">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                
+                <div class="mb-3">
+                    <label class="form-label">Nazwa:</label>
+                    <InputText class="form-control" @bind-Value="currentExercise.Name" />
+                </div>
+                
+                <button type="submit" class="btn btn-success">Zapisz</button>
+                <button type="button" class="btn btn-secondary" @onclick="CancelForm">Anuluj</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (exercises == null)
+{
+    <p><em>Ładowanie...</em></p>
+}
+else if (!exercises.Any())
+{
+    <div class="alert alert-info">Brak typów ćwiczeń. Dodaj pierwszy!</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nazwa</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var exercise in exercises)
+            {
+                <tr>
+                    <td>@exercise.Id</td>
+                    <td>@exercise.Name</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditExercise(exercise.Id)">
+                            <span class="bi bi-pencil"></span> Edytuj
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteExercise(exercise.Id)">
+                            <span class="bi bi-trash"></span> Usuń
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ExerciseType>? exercises;
+    private ExerciseType currentExercise = new();
+    private bool showForm = false;
+    private int? editingId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadExercises();
+    }
+
+    private async Task LoadExercises()
+    {
+        exercises = await DbContext.ExerciseTypes.ToListAsync();
+    }
+
+    private void ShowAddForm()
+    {
+        currentExercise = new ExerciseType();
+        editingId = null;
+        showForm = true;
+    }
+
+    private async Task EditExercise(int id)
+    {
+        var exercise = await DbContext.ExerciseTypes.FindAsync(id);
+        if (exercise != null)
+        {
+            currentExercise = new ExerciseType { Id = exercise.Id, Name = exercise.Name };
+            editingId = id;
+            showForm = true;
+        }
+    }
+
+    private async Task SaveExercise()
+    {
+        if (editingId.HasValue)
+        {
+            var exercise = await DbContext.ExerciseTypes.FindAsync(editingId.Value);
+            if (exercise != null)
+            {
+                exercise.Name = currentExercise.Name;
+                DbContext.ExerciseTypes.Update(exercise);
+            }
+        }
+        else
+        {
+            DbContext.ExerciseTypes.Add(currentExercise);
+        }
+        
+        await DbContext.SaveChangesAsync();
+        await LoadExercises();
+        CancelForm();
+    }
+
+    private async Task DeleteExercise(int id)
+    {
+        var exercise = await DbContext.ExerciseTypes.FindAsync(id);
+        if (exercise != null)
+        {
+            DbContext.ExerciseTypes.Remove(exercise);
+            await DbContext.SaveChangesAsync();
+            await LoadExercises();
+        }
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        currentExercise = new ExerciseType();
+        editingId = null;
+    }
+}

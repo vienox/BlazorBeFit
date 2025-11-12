@@ -1,0 +1,164 @@
+@page "/training-sessions"
+@using BlazorBeFit.Data
+@using BlazorBeFit.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@rendermode InteractiveServer
+
+<PageTitle>Sesje Treningowe</PageTitle>
+
+<h3>Sesje Treningowe</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddForm">
+        <span class="bi bi-plus-circle"></span> Dodaj nową sesję
+    </button>
+</div>
+
+@if (showForm)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">@(editingId.HasValue ? "Edytuj" : "Dodaj") sesję treningową</h5>
+            <EditForm Model="@currentSession" OnValidSubmit="@SaveSession">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                
+                <div class="mb-3">
+                    <label class="form-label">Data i czas rozpoczęcia:</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="currentSession.Start" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Data i czas zakończenia:</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="currentSession.End" />
+                </div>
+                
+                <button type="submit" class="btn btn-success">Zapisz</button>
+                <button type="button" class="btn btn-secondary" @onclick="CancelForm">Anuluj</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (sessions == null)
+{
+    <p><em>Ładowanie...</em></p>
+}
+else if (!sessions.Any())
+{
+    <div class="alert alert-info">Brak sesji treningowych. Dodaj pierwszą!</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Rozpoczęcie</th>
+                <th>Zakończenie</th>
+                <th>Czas trwania</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var session in sessions)
+            {
+                <tr>
+                    <td>@session.Id</td>
+                    <td>@session.Start.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>@session.End.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>@((session.End - session.Start).TotalMinutes.ToString("F0")) min</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditSession(session.Id)">
+                            <span class="bi bi-pencil"></span> Edytuj
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteSession(session.Id)">
+                            <span class="bi bi-trash"></span> Usuń
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<TrainingSession>? sessions;
+    private TrainingSession currentSession = new() { Start = DateTime.Now, End = DateTime.Now.AddHours(1) };
+    private bool showForm = false;
+    private int? editingId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSessions();
+    }
+
+    private async Task LoadSessions()
+    {
+        sessions = await DbContext.TrainingSessions.OrderByDescending(s => s.Start).ToListAsync();
+    }
+
+    private void ShowAddForm()
+    {
+        currentSession = new TrainingSession { Start = DateTime.Now, End = DateTime.Now.AddHours(1) };
+        editingId = null;
+        showForm = true;
+    }
+
+    private async Task EditSession(int id)
+    {
+        var session = await DbContext.TrainingSessions.FindAsync(id);
+        if (session != null)
+        {
+            currentSession = new TrainingSession 
+            { 
+                Id = session.Id, 
+                Start = session.Start, 
+                End = session.End 
+            };
+            editingId = id;
+            showForm = true;
+        }
+    }
+
+    private async Task SaveSession()
+    {
+        if (editingId.HasValue)
+        {
+            var session = await DbContext.TrainingSessions.FindAsync(editingId.Value);
+            if (session != null)
+            {
+                session.Start = currentSession.Start;
+                session.End = currentSession.End;
+                DbContext.TrainingSessions.Update(session);
+            }
+        }
+        else
+        {
+            DbContext.TrainingSessions.Add(currentSession);
+        }
+        
+        await DbContext.SaveChangesAsync();
+        await LoadSessions();
+        CancelForm();
+    }
+
+    private async Task DeleteSession(int id)
+    {
+        var session = await DbContext.TrainingSessions.FindAsync(id);
+        if (session != null)
+        {
+            DbContext.TrainingSessions.Remove(session);
+            await DbContext.SaveChangesAsync();
+            await LoadSessions();
+        }
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        currentSession = new TrainingSession { Start = DateTime.Now, End = DateTime.Now.AddHours(1) };
+        editingId = null;
+    }
+}
